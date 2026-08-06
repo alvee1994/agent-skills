@@ -1,9 +1,0 @@
-{
-  "name": "bitwarden-agent-login",
-  "private": true,
-  "version": "1.0.0",
-  "description": "Secure browser-login helper using Bitwarden Agent Access (aac) to inject credentials into a child process without exposing them to the calling agent.",
-  "dependencies": {
-    "playwright": "^1.47.0"
-  }
-}
