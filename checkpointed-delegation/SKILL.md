@@ -33,6 +33,15 @@ Reserve full-output reading for when one of these three trips — that's the exp
 
 Put enforcement in the orchestrator, not just discipline in the prompt. A drifted model also tends to stop honoring its own reporting contract — a progress file gone silent is itself a signal. Poll the progress file (Claude Code: the `Monitor` tool streams a background process's stdout live and can wait-until-condition), apply the three checks above, and on a trip, kill and restart from the **last good artifact**.
 
+## Keeping the checkpoint loop itself cheap
+
+The supervision loop has its own context/token cost — a checkpoint pattern that re-reads a growing log on every poll defeats its own purpose over a long run.
+
+- Launch backgrounded and default to **one check at the end**, triggered by the process-exit notification (Claude Code: `Bash run_in_background`, or `Monitor` with a wait-until-condition rather than a fixed interval). This costs one tool call for the whole delegation.
+- When interval polling is warranted (a run long enough that catching drift mid-way beats waiting), poll on chunk-duration scale, and read with `tail`, never a full-file `Read`: `wc -l progress.log; tail -n 1 progress.log` gives chunk count and current `NEXT` in a fixed handful of tokens regardless of log size. Track the last-seen byte offset (`stat -c %s`) in your own transcript and resume from there — `tail -c +$((OFFSET+1))` — on the next poll.
+- Check artifact existence and size with `stat` or `find`, never with `Read`. Content only gets pulled in on the escalation path, after a check trips.
+- Compare `stat -c '%s %Y'` (size + mtime) before tailing — identical to last poll means skip the tail call entirely.
+
 ## On Pi
 
 **Prerequisites:**
@@ -49,7 +58,7 @@ Format and mechanics have been checked end to end against a real `pi -p` dispatc
 
 Pi core ships no standard subagent tool and no equivalent of Claude Code's `Monitor`. Dispatch via `subagent` from the `pi-subagents` package when installed (single-agent, chain, parallel, async, forked-context, resume/status workflows). Otherwise run the chunks sequentially in the current session, or tell the user the subagent capability is missing — never fabricate a `Task`-style call.
 
-With no built-in live-stream tool, the progress-file check carries the full weight of visibility on Pi. Poll it directly between chunks — re-read the file itself, not raw stdout.
+With no built-in live-stream tool, the progress-file check carries the full weight of visibility on Pi. Poll it with the same `tail`/offset approach above, between chunks — not raw stdout.
 
 Task tracking (marking chunks done, tracking the plan) has no standard Pi tool either. Use an installed todo/task extension if present; otherwise a plan file or a repo-local `TODO.md` — the same file the progress-file convention above can double as, one line per chunk.
 
@@ -60,3 +69,7 @@ Task tracking (marking chunks done, tracking the plan) has no standard Pi tool e
 - Trusting the delegated agent's own "done" claim in place of checking the artifact.
 - Piping raw subagent stdout into your own context by default — mostly reasoning noise; pull it only after a mechanical check trips.
 - Chunks with no artifact (e.g. "analyze the codebase" as one chunk) are unverifiable by construction — drift stays invisible until something downstream breaks.
+- Polling `progress.log` with `Read` instead of `tail` — cost grows with every poll as the file grows, compounding across the run.
+- Reading artifact contents on a routine checkpoint "just to sanity-check quality" — that's a full review at every checkpoint, exactly what the chunked design exists to defer.
+- Fixed-interval polling that mostly returns "no change" — each poll is a permanent context entry. Prefer end-of-run or chunk-duration cadence over a timer.
+- Letting the subagent write anything other than the fixed `CHUNK` line into `progress.log` — prose inflates every tail read and breaks `tail -n 1`.
