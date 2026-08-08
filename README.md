@@ -6,7 +6,7 @@ A collection of [Agent Skills](https://agentskills.io/specification) — self-co
 
 | Skill | What it does |
 |---|---|
-| [`checkpointed-delegation`](checkpointed-delegation/SKILL.md) | Structures a long task handed to another agent (e.g. a weaker model run as a subagent) into checkpointed chunks, so drift is caught mid-run instead of only at the end. |
+| [`checkpointed-delegation`](checkpointed-delegation/SKILL.md) | For Claude Code: offload mechanical execution to a cheap OpenRouter model via Pi (Opus/Fable 5 keeps planning and review), so only planning burns subscription quota. Checkpointed chunks catch the cheap model's drift mid-run instead of only at the end. |
 | [`flesch-kincaid`](flesch-kincaid/SKILL.md) | Scores a draft's reading grade with a real Flesch-Kincaid formula and loops simplification passes until it hits a target grade. Includes `fk_score.py`, no dependencies beyond Python 3. |
 | [`zmail-cli`](zmail-cli/SKILL.md) | Drives a specific local Zoho Mail CLI tool. Tied to one person's machine and account — read it as a worked example of documenting a finicky local tool, not something you can run as-is. |
 
