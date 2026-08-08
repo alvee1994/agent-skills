@@ -43,6 +43,10 @@ Put the *enforcement* in the orchestrator, not just discipline in the prompt. A 
 
 Format and mechanics have been checked end to end against a real `pi -p` dispatch (multi-chunk task, `progress.log` written in the format above): both artifacts landed and the progress lines matched the format exactly, so the mechanical checks (artifact exists, `NEXT` matches plan) work as described.
 
+**Non-interactive invocation:** `pi --provider <provider> --model <model> -p "<prompt>" --no-session`. Boolean flags are switches, not `--flag=value` — e.g. `--no-tools` on its own, never `--no-tools=false`; the latter errors with `Unknown option` before the model even starts. Run `pi --list-models <search>` to confirm a model id/provider pairing exists before dispatching to it.
+
+**Picking a model for chunked work:** models vary a lot in latency on identical trivial tasks, independent of task difficulty — this is exactly the "how much does it overthink" question this skill exists to manage. Before delegating real chunked work to an unfamiliar model, time it on a throwaway one-tool-call task first (e.g. "write a file containing exactly OK, nothing else") and compare wall-clock time across candidates. A one-off timing check like this doesn't need the progress-file protocol — that's for real multi-chunk work — but it's the cheapest signal for whether a given model is going to be slow to check in during actual chunked delegation.
+
 Pi core ships no standard subagent tool and no equivalent of Claude Code's `Monitor`. If a subagent tool is installed — e.g. `subagent` from the `pi-subagents` package (single-agent, chain, parallel, async, forked-context, resume/status workflows) — use it to dispatch the chunked work. If none is installed, don't invent a `Task`-style call: either run the chunks sequentially in the current session, or tell the user the subagent capability isn't installed.
 
 Since there's no built-in live-stream tool, the progress-file check above carries even more weight on Pi than on Claude Code — it's the only cheap way to know a dispatched chunk is still on track. Poll the progress file yourself between chunks (re-read it, don't tail raw stdout).
