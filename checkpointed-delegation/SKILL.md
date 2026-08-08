@@ -35,13 +35,13 @@ Put the *enforcement* in the orchestrator, not just discipline in the prompt. A 
 
 ## On Pi
 
-**Prerequisites, verified on this machine:**
-- `pi` on PATH: `which pi` → `/home/lv/.npm-global/bin/pi`.
-- Logged in / usable: `pi -p "reply with exactly: pi-ok" --no-session` returns `pi-ok`. If it instead errors or prompts for auth, fix login before trying to dispatch chunked work — don't try to work around it.
-- Subagent dispatch specifically needs `pi-subagents` installed (`pi list` should show it under Extensions). Verified absent on this machine — `pi list` doesn't list it — so the fallback path (sequential in-session, or tell the user it's missing) is the live one here, not the `subagent` tool path.
-- Don't run `pi -p ...` in the foreground and wait on it directly — a real multi-tool-call run outran a 2-minute foreground timeout during testing here even though it finished fine. Launch it backgrounded (`nohup pi -p ... > out.log 2>&1 & disown`) and poll the progress file for completion, the same pattern this skill already prescribes for drift-checking.
+**Prerequisites — check before dispatching:**
+- `pi` on PATH: `which pi` resolves.
+- Logged in / usable: `pi -p "reply with exactly: pi-ok" --no-session` returns `pi-ok`. If it errors or prompts for auth instead, fix login first — don't try to work around it.
+- Subagent dispatch specifically needs `pi-subagents` installed (`pi list` should show it under Extensions). If absent, use the fallback path (sequential in-session, or tell the user it's missing) instead of the `subagent` tool path.
+- Don't run `pi -p ...` in the foreground and wait on it directly — a real multi-tool-call run can outrun a short foreground timeout even when it would have finished fine. Launch it backgrounded (`nohup pi -p ... > out.log 2>&1 & disown`) and poll the progress file for completion, the same pattern this skill already prescribes for drift-checking.
 
-**Verified end to end** on this machine: dispatched a 2-chunk `pi -p` task (write `hello.txt`, write `world.txt`, append a `progress.log` line per chunk in the format above). Both artifacts landed correctly and `progress.log` came back exactly `CHUNK 1 | hello.txt | ... | NEXT: Write world.txt` then `CHUNK 2 | world.txt | ... | NEXT: None, both chunks complete` — the mechanical checks in this skill (artifact exists, `NEXT` matches plan) would have passed cleanly.
+Format and mechanics have been checked end to end against a real `pi -p` dispatch (multi-chunk task, `progress.log` written in the format above): both artifacts landed and the progress lines matched the format exactly, so the mechanical checks (artifact exists, `NEXT` matches plan) work as described.
 
 Pi core ships no standard subagent tool and no equivalent of Claude Code's `Monitor`. If a subagent tool is installed — e.g. `subagent` from the `pi-subagents` package (single-agent, chain, parallel, async, forked-context, resume/status workflows) — use it to dispatch the chunked work. If none is installed, don't invent a `Task`-style call: either run the chunks sequentially in the current session, or tell the user the subagent capability isn't installed.
 
