@@ -33,6 +33,14 @@ Only read full output/reasoning when one of these three trips — that's the exp
 
 Put the *enforcement* in the orchestrator, not just discipline in the prompt. A model that has drifted also tends to stop honoring its own reporting contract — a progress file that goes silent is itself a signal, not just a missing log. The orchestrator should poll the progress file (Claude Code: the `Monitor` tool streams a background process's stdout live and can wait-until-condition; don't just fire-and-forget with `Bash run_in_background` and wait for the completion notification on a long run), apply the three checks above, and kill + restart from the **last good artifact** — never from scratch — when drift trips.
 
+## On Pi
+
+Pi core ships no standard subagent tool and no equivalent of Claude Code's `Monitor`. If a subagent tool is installed — e.g. `subagent` from the `pi-subagents` package (single-agent, chain, parallel, async, forked-context, resume/status workflows) — use it to dispatch the chunked work. If none is installed, don't invent a `Task`-style call: either run the chunks sequentially in the current session, or tell the user the subagent capability isn't installed.
+
+Since there's no built-in live-stream tool, the progress-file check above carries even more weight on Pi than on Claude Code — it's the only cheap way to know a dispatched chunk is still on track. Poll the progress file yourself between chunks (re-read it, don't tail raw stdout).
+
+Task tracking (marking chunks done, tracking the plan) has no standard Pi tool either. Use an installed todo/task extension if present; otherwise a plan file or a repo-local `TODO.md` — the same file the progress-file convention above can double as, one line per chunk.
+
 ## Anti-patterns
 
 - "Report your progress" with no fixed line format — you'll get prose you then need an LLM to parse, defeating the point of a mechanical check.
