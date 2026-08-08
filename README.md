@@ -1,6 +1,6 @@
 # agent-skills
 
-A collection of [Agent Skills](https://agentskills.io/specification) — self-contained instruction packages that an LLM agent loads on demand. Each skill is a folder with a `SKILL.md` (frontmatter + instructions) and, where useful, a small helper script. The format is the same one Claude Code, Pi, and other agent harnesses already read natively.
+A collection of [Agent Skills](https://agentskills.io/specification) — self-contained instruction packages that an LLM agent loads on demand. Each skill is a folder with a `SKILL.md` (frontmatter + instructions), plus a small helper script where useful. Claude Code, Pi, and other agent harnesses already read this same format natively.
 
 ## Skills in this repo
 
@@ -38,7 +38,7 @@ git clone https://github.com/alvee1994/agent-skills.git ~/codeStuff/agent-skills
 ln -s ~/codeStuff/agent-skills/flesch-kincaid ~/.claude/skills/flesch-kincaid
 ```
 
-Restart Claude Code (or start a new session) and invoke with `/flesch-kincaid 6-8`, or just ask for the task — Claude Code reads the skill list at startup and pulls in the matching one automatically.
+Restart Claude Code, or start a new session. Then invoke with `/flesch-kincaid 6-8`, or just ask for the task — Claude Code reads the skill list at startup and pulls in the matching one on its own.
 
 ### Pi (CLI)
 
@@ -54,7 +54,7 @@ Then `/skill:flesch-kincaid 6-8` inside a `pi` session.
 
 ### Claude.ai / Claude Desktop (web or app)
 
-Claude's Skills feature (Settings → Capabilities → Skills) takes a `.zip` with `SKILL.md` at its root. Zip one skill folder and upload it:
+Claude's Skills feature (Settings → Capabilities → Skills) takes a `.zip` with `SKILL.md` at its root. Zip one skill folder, then upload it:
 
 ```sh
 cd agent-skills/flesch-kincaid && zip -r ../flesch-kincaid.zip .
@@ -71,7 +71,7 @@ ChatGPT has no native Agent Skills support, but a Custom GPT gets you the same r
 3. If the skill ships a script (e.g. `fk_score.py`), upload it under **Knowledge** and enable **Code Interpreter** so the GPT can run it.
 4. Save, then just describe the task in chat — the custom instructions apply automatically.
 
-No Custom GPT access (e.g. on a free plan)? Paste the `SKILL.md` body directly into a message before your actual request — any chat model will follow it for that conversation, just without it persisting across sessions.
+No Custom GPT access (e.g. on a free plan)? Paste the `SKILL.md` body directly into a message before your actual request. Any chat model will follow it for that conversation — it just won't persist across sessions.
 
 ### Perplexity (web)
 
@@ -83,7 +83,7 @@ Create a **Space** (sidebar → Spaces → Create Space), and in its settings:
 
 ### Any other chat interface
 
-The fallback that works everywhere: open `SKILL.md`, copy everything below the frontmatter, paste it at the top of your message, then add your actual request underneath.
+The fallback that works everywhere: open `SKILL.md`. Copy everything below the frontmatter. Paste it at the top of your message, then add your actual request underneath.
 
 ## License
 
