@@ -76,7 +76,7 @@ tmux capture-pane -t "$SESSION" -p
 using the three fields straight from `upload-attachment`'s response. Example, full send with attachment:
 
 ```
-message send --account=REDACTED-ACCOUNT-ID --from-address=admin@example.com --to-address=<to> --subject=<s> --content=<body> --mail-format=plaintext --attachments=zmail_test_attachment.txt::/Mail/REDACTED-PATH-zmail_test_attachment.txt::REDACTED-STORE-ID -f=JSON
+message send --account=<account-id> --from-address=<from> --to-address=<to> --subject=<s> --content=<body> --mail-format=plaintext --attachments=zmail_test_attachment.txt::/Mail/<attachment-path>::<store-id> -f=JSON
 ```
 
 Confirmed working both via `tmux send-keys` and typed directly.
