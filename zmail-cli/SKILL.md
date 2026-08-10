@@ -119,6 +119,57 @@ Everything supports `-f=TABLE` or `-f=JSON` for output format — use `JSON` whe
   - `message send --account=<id> --from-address=<addr> --to-address=<addr> --subject=<s> --content=<body> --mail-format=plaintext -f=JSON` — verified working. Flag values don't need spaces, but if they do, quote the whole command correctly when driving it via `tmux send-keys` (itself finicky — see the quirk above). Success looks like `{"status":{"code":200,"description":"success"}}`.
   - `message upload-attachment --account=<id> --upload-type=multipart --attach=<local file path> --file-name-q=<name> -f=JSON` — verified working, but **both flags are load-bearing and undocumented as such**. `--upload-type=multipart` is required, or the file uploads as 0 bytes even though the API accepts the call. `--file-name-q` (not `--file-name`) is the one that actually sets the name — `--file-name` alone errors with `fileName is null`. Success returns `{"status":{"code":200,...},"data":[{"storeName":"...","attachmentName":"...","attachmentPath":"...","url":null}]}`. Feed those three fields into `send --attachments=name::path::storeName` (see the `--attachments` syntax note above — it is not JSON despite the help text).
 
+## Composing a message with spaces in the subject/content (verified working)
+
+The interactive shell's argument tokenizer is not a real shell. It does not merge an unquoted prefix with a following quoted chunk into one token. This breaks the intuitive form:
+
+```
+--subject="Some Subject With Spaces"
+```
+
+That gets tokenized as **two** separate tokens — `--subject=` (empty value) and `Some Subject With Spaces` (a stray unmatched positional) — and the command fails with `Unmatched arguments from index N: ...`. Quote style (single vs double) does not matter; the split happens right at the `=`.
+
+**Fix: put the opening quote before the `--flag`, not after the `=`**, so the whole `--flag=value` is one token:
+
+```
+'--subject=Some Subject With Spaces'
+'--content=Some content with spaces and punctuation.'
+```
+
+Also avoid apostrophes/contractions inside any single-quoted value ("I'm", "don't") — the tokenizer treats a bare `'` as a quote-open/close character even mid-word, which silently corrupts everything after it. Write "I am" instead of "I'm", etc. If double-quoting instead, the same risk applies to stray `"` characters.
+
+For a body with paragraph breaks, don't rely on literal newlines in the content string — sending a real newline through `tmux send-keys` submits the line early, same failure mode as the JSON-attachments quirk above. Use `--mail-format=html` and join paragraphs with `<br><br>` instead of `\n\n`.
+
+## Saving a draft instead of sending (verified working)
+
+`message send`'s `--mode` flag is undocumented in `help` (it just says "Use json for this field," which is wrong — same doc-generation bug as `--attachments`). In practice it accepts `draft` as a value, and the message is saved to the account's Drafts folder instead of being sent:
+
+```
+message send --account=<account-id> --from-address=<addr> --to-address=<addr> '--subject=<subject>' '--content=<body>' --mail-format=html --mode=draft --attachments=<name>::<path>::<storeName> -f=JSON
+```
+
+A `{"status":{"code":200,...}}` response only confirms the API call succeeded — it does not by itself prove the message landed in Drafts rather than Sent/Outbox. **Verify by finding the account's actual Drafts folder and listing its contents**, rather than assuming a folder ID:
+
+```
+folders list --account=<account-id> -f=JSON
+```
+
+Find the object where `"path":"/Drafts"` and read its `"folderId"` from that same object — folder IDs are account-specific and not stable across accounts or Zoho instances, so look it up fresh each time rather than hardcoding one. Then:
+
+```
+message list --folder=<drafts-folder-id> --limit=5 -f=JSON
+```
+
+Confirm the new message appears with the right `subject`, `toAddress`, and `hasAttachment`. If there's any doubt about `--mode=draft` actually being safe before trying it against a real recipient, send the same command first with `--to-address` set to the human's own inbox, verify it lands in Drafts (not their inbox), then redo it with the real recipient.
+
+Deleting a draft afterwards uses the same Drafts folder ID:
+
+```
+message delete --account=<account-id> --folder=<drafts-folder-id> --message=<message-id> -f=JSON
+```
+
+This has been observed to intermittently fail with a generic "An error occurred while doing the operation" — if it does, don't retry blindly; tell the human and let them delete it from the web UI.
+
 ### `account`
 - `account list`, `account inspect` — read-only account details.
 - The rest (`update-*`, `add-sendmaildetails*`, `resend-replyto-verification*`) are mutating account-settings changes — never run these without the human explicitly asking for that specific change.
