@@ -170,6 +170,18 @@ message delete --account=<account-id> --folder=<drafts-folder-id> --message=<mes
 
 This has been observed to intermittently fail with a generic "An error occurred while doing the operation" — if it does, don't retry blindly; tell the human and let them delete it from the web UI.
 
+## Scheduling a send (verified working)
+
+`message send` has no way to schedule an existing draft by message ID — there is no `--message`/draft-reference flag on it. Scheduling means resubmitting the full message content through `send` itself, with `--schedule` and `--schedule-type=6` (custom date/time):
+
+```
+message send --account=<account-id> --from-address=<addr> --to-address=<addr> '--subject=<s>' '--content=<body>' --mail-format=html --schedule --schedule-type=6 '--schedule-time=MM/DD/YYYY HH:MM:SS' --time-zone=Europe/Amsterdam -f=JSON
+```
+
+Because it is a fresh submission, not a draft conversion, always re-pull the draft's current content first if the human may have edited it directly in the Zoho web UI since it was last drafted — don't resend stale content from earlier in the conversation.
+
+Default scheduling windows this user favors, absent other instructions: 9:45am or 1:30am-3am, Europe/Amsterdam. Pick same-day if that window hasn't passed yet at request time, otherwise the next day. Check the current time first (`TZ=Europe/Amsterdam date`) before choosing.
+
 ### `account`
 - `account list`, `account inspect` — read-only account details.
 - The rest (`update-*`, `add-sendmaildetails*`, `resend-replyto-verification*`) are mutating account-settings changes — never run these without the human explicitly asking for that specific change.
