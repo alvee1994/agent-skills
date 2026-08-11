@@ -81,7 +81,17 @@ message send --account=<account-id> --from-address=<from> --to-address=<to> --su
 
 Confirmed working both via `tmux send-keys` and typed directly.
 
-Kill the session when done: `tmux kill-session -t "$SESSION"`.
+**Don't kill the session right after one task.** The user runs multiple zmail tasks in a session and doesn't want to re-enter the encryption password each time. Instead, leave the session running and arm a background auto-expiry the first time it's unlocked, so it self-destructs after 30 minutes of the agent not touching it — no lingering unlocked session, but no re-login for back-to-back tasks either:
+
+```bash
+( sleep 1800; tmux kill-session -t "$SESSION" 2>/dev/null ) & disown
+```
+
+Each new command sent to the session (via `tmux send-keys`) effectively "uses" it — there's no need to reset the timer on activity; a flat 30-minute window from first unlock is enough for a normal multi-task exchange. If the human is still going after that, just start a fresh session and have them re-enter the password once.
+
+Before reusing a session across tasks, re-check `tmux has-session -t "$SESSION"` — the 30-minute timer may have already fired, or the human may have detached without it ever unlocking. Fall back to spinning up a new session if it's gone.
+
+Kill it explicitly and immediately if the human asks to end the session early: `tmux kill-session -t "$SESSION"`.
 
 ## Non-interactive help (no password needed)
 
